@@ -1,20 +1,30 @@
-sealed class Game {
-    // -- module --
-    public static Game Shared { get; private set; }
+using System;
+using UnityEngine;
+
+public sealed class Game: MonoBehaviour {
+    // -- deps --
+    private EventLog mLog;
 
     // -- props --
-    private Session mSession;
+    [SerializeField]
+    [Tooltip("The squad prototype.")]
+    private GameObject mSquad;
 
-    // -- lifetime --
-    private Game(Session session) {
-        mSession = session;
+    // -- lifecycle --
+    private void Awake() {
+        mLog = EventLog.Get;
     }
 
-    // -- queries --
-    public Session Session => mSession;
+    private void Start() {
+        mLog.OnEvent(DidReceiveEvent);
+    }
 
-    // -- factories --
-    public static void Start(Session session) {
-        Shared = new Game(session);
+    // -- commands --
+    private void DidReceiveEvent(Event e) {
+        switch (e) {
+            case SpawnSquad _: {
+                Instantiate(mSquad); break;
+            }
+        }
     }
 }

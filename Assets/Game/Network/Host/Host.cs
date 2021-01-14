@@ -2,57 +2,57 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Networking.Transport;
 using UnityEngine;
+using Config = NetworkConfig;
 
-namespace Network {
-    sealed class Host: MonoBehaviour {
-        // -- constants --
-        private const int kMaxConnections = 10;
+sealed partial class Host: MonoBehaviour {
+    // -- constants --
+    private const int kMaxConnections = 10;
 
-        // -- deps --
-        private global::Host mSession;
+    // -- deps --
+    private Session.Host mSession;
 
-        // -- props --
-        private JobHandle mJob;
-        private NetworkDriver mDriver;
-        private NativeList<NetworkConnection> mConnections;
+    // -- props --
+    private JobHandle mJob;
+    private NetworkDriver mDriver;
+    private NativeList<NetworkConnection> mConnections;
 
-        // -- lifecycle --
-        private void Start() {
-            mDriver = NetworkDriver.Create();
+    // -- lifecycle --
+    private void Start() {
+        mDriver = NetworkDriver.Create();
 
-            var endpoint = NetworkEndPoint.AnyIpv4;
-            endpoint.Port = Config.kPort;
+        var endpoint = NetworkEndPoint.AnyIpv4;
+        endpoint.Port = Config.kPort;
 
-            var res = mDriver.Bind(endpoint);
-            if (res != 0) {
-                Debug.Log($"Failed to bind to {Config.kPort}; {res}");
-            } else {
-                mDriver.Listen();
-            }
-
-            mConnections = new NativeList<NetworkConnection>(kMaxConnections, Allocator.Persistent);
+        var res = mDriver.Bind(endpoint);
+        if (res != 0) {
+            Debug.Log($"Failed to bind to {Config.kPort}; {res}");
+        } else {
+            mDriver.Listen();
         }
 
-        private void Update() {
-            mJob.Complete();
+        mConnections = new NativeList<NetworkConnection>(kMaxConnections, Allocator.Persistent);
+        Debug.Log($"host: listen on {Config.kPort}");
+    }
 
-            var updatec = new UpdateHostConnections(mDriver, mConnections);
-            var updateh = new UpdateHost(mDriver.ToConcurrent(), mConnections.AsDeferredJobArray());
+    private void Update() {
+        mJob.Complete();
 
-            mJob = mDriver.ScheduleUpdate();
-            mJob = updatec.Schedule(mJob);
-            mJob = updateh.Schedule(mConnections, 1, mJob);
-        }
+        var updatec = new UpdateConnectionsJob(mDriver, mConnections);
+        var updateh = new UpdateJob(mDriver.ToConcurrent(), mConnections.AsDeferredJobArray());
 
-        private void OnDestroy() {
-            mJob.Complete();
-            mDriver.Dispose();
-            mConnections.Dispose();
-        }
+        mJob = mDriver.ScheduleUpdate();
+        mJob = updatec.Schedule(mJob);
+        mJob = updateh.Schedule(mConnections, 1, mJob);
+    }
 
-        // -- deps --
-        public void Bind(global::Host session) {
-            mSession = session;
-        }
+    private void OnDestroy() {
+        mJob.Complete();
+        mDriver.Dispose();
+        mConnections.Dispose();
+    }
+
+    // -- deps --
+    public void Bind(Session.Host session) {
+        mSession = session;
     }
 }

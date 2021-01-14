@@ -2,22 +2,22 @@
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-internal sealed class Menu: MonoBehaviour {
+sealed class Menu: MonoBehaviour {
     // -- props --
     private string mIp;
 
     // -- commands --
     private void StartHost() {
-        StartGame(new Host());
+        StartSession(new Session.Host());
     }
 
     private void StartClient() {
-        StartGame(new Client(mIp?.Trim() ?? ""));
+        StartSession(new Session.Client(mIp?.Trim() ?? ""));
     }
 
     // -- c/helpers
-    private void StartGame(Session session) {
-        Game.Start(session);
+    private void StartSession(Session session) {
+        Session.Start(session);
 
         // advance to the loading scene
         var i = SceneManager.GetActiveScene().buildIndex;
@@ -26,17 +26,16 @@ internal sealed class Menu: MonoBehaviour {
 
     // -- events --
     // -- e/host
-    public void didClickStart() {
+    public void DidClickStart() {
         StartHost();
     }
 
     // -- e/join
-    public void didChangeIp(InputField field) {
+    public void DidChangeIp(InputField field) {
         mIp = field.text;
-        Debug.Log(mIp);
     }
 
-    public void didClickJoin() {
+    public void DidClickJoin() {
         StartClient();
     }
 }

@@ -1,27 +1,30 @@
 ﻿using UnityEngine;
 
-namespace Network {
-    public sealed class Connect: MonoBehaviour {
-        // -- lifecycle --
-        private void Awake() {
-            switch (Game.Shared?.Session) {
-                case global::Host session:
-                    ConnectAs<Host>().Bind(session); break;
-                case global::Client session:
-                    ConnectAs<Client>().Bind(session); break;
-                default: Remove(); break;
-            }
-        }
+public sealed class Connect: MonoBehaviour {
+    // -- deps --
+    private Session mSession;
 
-        // -- command --
-        private T ConnectAs<T>() where T: Component {
-            var component = gameObject.AddComponent<T>();
-            Remove();
-            return component;
-        }
+    // -- lifecycle --
+    private void Awake() {
+        mSession = Session.Get;
 
-        private void Remove() {
-            Destroy(this);
+        switch (mSession) {
+            case Session.Host session:
+                ConnectAs<Host>().Bind(session); break;
+            case Session.Client session:
+                ConnectAs<Client>().Bind(session); break;
+            default: Remove(); break;
         }
+    }
+
+    // -- command --
+    private T ConnectAs<T>() where T: Component {
+        var component = gameObject.AddComponent<T>();
+        Remove();
+        return component;
+    }
+
+    private void Remove() {
+        Destroy(this);
     }
 }

@@ -1,0 +1,2 @@
+public struct SpawnSquad: Event {
+}

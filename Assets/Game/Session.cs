@@ -1,17 +1,29 @@
-﻿// -- types --
-interface Session {
-}
+﻿class Session {
+    // -- module --
+    public static Session Get
+        => Instance;
 
-// -- options --
-sealed class Host: Session {
-}
+    private static Session Instance;
 
-sealed class Client: Session {
-    // -- props --
-    private string mHostIp;
+    // -- factories --
+    public static void Start(Session session) {
+        Instance = session;
+    }
 
-    // -- lifetime --
-    public Client(string hostIp) {
-        mHostIp = hostIp;
+    // -- options --
+    public sealed class Host: Session {
+    }
+
+    public sealed class Client: Session {
+        // -- props --
+        private string mHostIp;
+
+        // -- lifetime --
+        public Client(string hostIp) {
+            mHostIp = hostIp;
+        }
+
+        // -- queries --
+        public string HostIp => mHostIp;
     }
 }
