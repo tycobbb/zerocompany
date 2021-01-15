@@ -1,0 +1,3 @@
+enum EventType: byte {
+    SpawnSquad,
+}

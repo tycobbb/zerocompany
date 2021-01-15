@@ -4,18 +4,24 @@ using Unity.Networking.Transport;
 using UnityEngine;
 
 sealed partial class Client {
-    struct UpdateJob: IJob {
+    private struct UpdateJob: IJob {
         // -- props --
         private NetworkDriver mDriver;
         private NativeArray<NetworkConnection> mConnection;
         private NativeArray<byte> mDone;
+        private NativeList<AnyEvent> mEvents;
 
         // -- lifetime --
-        public UpdateJob(NetworkDriver driver, NativeArray<NetworkConnection> connection,
-            NativeArray<byte> done) {
+        public UpdateJob(
+            NetworkDriver driver,
+            NativeArray<NetworkConnection> connection,
+            NativeArray<byte> done,
+            NativeList<AnyEvent> events
+        ) {
             mDriver = driver;
             mConnection = connection;
             mDone = done;
+            mEvents = events;
         }
 
         // -- IJob --
@@ -28,6 +34,21 @@ sealed partial class Client {
                 return;
             }
 
+            // send events
+            if (mEvents.Length != 0) {
+                var writer = mDriver.BeginSend(mConnection[0]);
+
+                for (var i = 0; i < mEvents.Length; i++) {
+                    var evt = mEvents[i];
+                    writer.WriteByte((byte) evt.Type);
+                    mEvents.RemoveAtSwapBack(i);
+                    --i;
+                }
+
+                mDriver.EndSend(writer);
+            }
+
+            // read events
             DataStreamReader stream;
             NetworkEvent.Type cmd;
 
@@ -35,19 +56,20 @@ sealed partial class Client {
                 switch (cmd) {
                     case NetworkEvent.Type.Connect: {
                         Debug.Log("We are now connected to the server");
-                        var value = (uint) 1;
-                        var writer = mDriver.BeginSend(mConnection[0]);
-                        writer.WriteUInt(value);
-                        mDriver.EndSend(writer);
+                        // var value = (uint) 1;
+                        // var writer = mDriver.BeginSend(mConnection[0]);
+                        // writer.WriteUInt(value);
+                        // mDriver.EndSend(writer);
                         break;
                     }
                     case NetworkEvent.Type.Data: {
-                        var value = stream.ReadUInt();
-                        Debug.Log("Got the value = " + value + " back from the server");
-                        // And finally change the `done[0]` to `1`
-                        mDone[0] = 1;
-                        mConnection[0].Disconnect(mDriver);
-                        mConnection[0] = default;
+                        Debug.Log("Got some data from the server");
+                        // var value = stream.ReadUInt();
+                        // Debug.Log("Got the value = " + value + " back from the server");
+                        // // And finally change the `done[0]` to `1`
+                        // mDone[0] = 1;
+                        // mConnection[0].Disconnect(mDriver);
+                        // mConnection[0] = default;
                         break;
                     }
                     case NetworkEvent.Type.Disconnect: {
@@ -55,7 +77,7 @@ sealed partial class Client {
                         mConnection[0] = default;
                         break;
                     }
-                    default: {
+                    case NetworkEvent.Type.Empty: {
                         Debug.Log("something else happened.");
                         break;
                     }

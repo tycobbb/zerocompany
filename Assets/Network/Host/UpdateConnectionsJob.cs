@@ -4,7 +4,7 @@ using Unity.Networking.Transport;
 using UnityEngine;
 
 sealed partial class Host {
-    struct UpdateConnectionsJob: IJob {
+    private struct UpdateConnectionsJob: IJob {
         // -- props --
         private NetworkDriver mDriver;
         private NativeList<NetworkConnection> mConnections;

@@ -8,9 +8,6 @@ sealed partial class Host: MonoBehaviour {
     // -- constants --
     private const int kMaxConnections = 10;
 
-    // -- deps --
-    private Session.Host mSession;
-
     // -- props --
     private JobHandle mJob;
     private NetworkDriver mDriver;
@@ -49,10 +46,5 @@ sealed partial class Host: MonoBehaviour {
         mJob.Complete();
         mDriver.Dispose();
         mConnections.Dispose();
-    }
-
-    // -- deps --
-    public void Bind(Session.Host session) {
-        mSession = session;
     }
 }

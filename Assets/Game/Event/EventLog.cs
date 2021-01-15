@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 
-// -- types --
-using EventListener = System.Action<Event>;
-
 // -- impls --
 class EventLog {
     // -- module --
@@ -15,7 +12,7 @@ class EventLog {
 
     // -- props --
     private List<Event> mLog = new List<Event>();
-    private List<EventListener> mListeners = new List<EventListener>();
+    private List<Action<Event>> mListeners = new List<Action<Event>>();
 
     // -- commands --
     public void Add(Event e) {
@@ -27,7 +24,7 @@ class EventLog {
        }
     }
 
-    public void OnEvent(EventListener listener) {
+    public void OnEvent(Action<Event> listener) {
         mListeners.Add(listener);
     }
 }

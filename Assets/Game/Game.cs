@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public sealed class Game: MonoBehaviour {
     // -- deps --
@@ -8,7 +9,7 @@ public sealed class Game: MonoBehaviour {
     // -- props --
     [SerializeField]
     [Tooltip("The squad prototype.")]
-    private GameObject mSquad;
+    private GameObject mSquadPrefab;
 
     // -- lifecycle --
     private void Awake() {
@@ -23,7 +24,7 @@ public sealed class Game: MonoBehaviour {
     private void DidReceiveEvent(Event e) {
         switch (e) {
             case SpawnSquad _: {
-                Instantiate(mSquad); break;
+                Instantiate(mSquadPrefab); break;
             }
         }
     }

@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Assertions;
 
 sealed partial class Host {
-    struct UpdateJob: IJobParallelForDefer {
+    private struct UpdateJob: IJobParallelForDefer {
         // -- props --
         private NetworkDriver.Concurrent mDriver;
         private NativeArray<NetworkConnection> mConnections;
