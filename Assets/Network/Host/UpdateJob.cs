@@ -17,29 +17,52 @@ sealed partial class Host {
         }
 
         // -- IJob --
-        public void Execute(int index) {
+        public void Execute(int ci) {
             DataStreamReader stream;
-            Assert.IsTrue(mConnections[index].IsCreated);
+            Assert.IsTrue(mConnections[ci].IsCreated);
 
             NetworkEvent.Type cmd;
-            while ((cmd = mDriver.PopEventForConnection(mConnections[index], out stream)) !=
-                   NetworkEvent.Type.Empty) {
+            while ((cmd = mDriver.PopEventForConnection(mConnections[ci], out stream)) != NetworkEvent.Type.Empty) {
                 switch (cmd) {
                     case NetworkEvent.Type.Data: {
-                        var number = stream.ReadUInt();
+                        // read number of events
+                        var n = stream.ReadByte();
+                        Log.D($"Host - received {n} events from client {ci}");
 
-                        Debug.Log("Got " + number + " from the Client adding + 2 to it.");
-                        number += 2;
+                        // read events out of stream
+                        var events = new AnyEvent[n];
 
-                        var writer = mDriver.BeginSend(mConnections[index]);
-                        writer.WriteUInt(number);
-                        mDriver.EndSend(writer);
+                        for (var i = 0; i < n; i++) {
+                            events[i] = new AnyEvent(
+                                step: stream.ReadUInt(),
+                                new AnyEvent.Value(
+                                    type: (EventType)stream.ReadByte()
+                                )
+                            );
+                        }
+
+                        // route events back to every client
+                        for (var i = 0; i < mConnections.Length; i++) {
+                            var writer = mDriver.BeginSend(mConnections[i]);
+
+                            // write the number of events
+                            writer.WriteByte(n);
+
+                            // write each event
+                            foreach (var evt in events) {
+                                writer.WriteUInt(evt.Step);
+                                writer.WriteByte((byte)evt.Val.Type);
+                            }
+
+                            mDriver.EndSend(writer);
+                        }
+
                         break;
                     }
 
                     case NetworkEvent.Type.Disconnect: {
-                        Debug.Log("Client disconnected from server");
-                        mConnections[index] = default;
+                        Log.I($"Host - client {ci} disconnected");
+                        mConnections[ci] = default;
                         break;
                     }
                 }

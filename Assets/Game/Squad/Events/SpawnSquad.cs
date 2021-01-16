@@ -1,12 +1,13 @@
-struct SpawnSquad: Event {
-    public AnyEvent Into() {
-        return new AnyEvent(EventType.SpawnSquad);
+struct SpawnSquad: Event.Value {
+    public AnyEvent.Value Into() {
+        return new AnyEvent.Value(
+            type: EventType.SpawnSquad
+        );
     }
 
-    struct Factory: Event.Factory {
-        public Event From(AnyEvent evt) {
+    internal struct Factory: Event.Value.Factory {
+        public Event.Value From(AnyEvent.Value evt) {
             return new SpawnSquad();
         }
     }
 }
-

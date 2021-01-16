@@ -13,22 +13,19 @@ sealed partial class Client: MonoBehaviour {
     // -- props --
     private JobHandle mJob;
     private NetworkDriver mDriver;
-    private NativeArray<byte> mDone;
     private NativeArray<NetworkConnection> mConnection;
     private NativeList<AnyEvent> mEvents;
     private NetworkConnection.State mState = NetworkConnection.State.Connecting;
-    private readonly Queue<AnyEvent> mPendingEvents = new Queue<AnyEvent>();
 
     // -- lifecycle --
     private void Start() {
         mDriver = NetworkDriver.Create(new NetworkConfigParameter {
             connectTimeoutMS = 1000,
             maxConnectAttempts = 3,
-            disconnectTimeoutMS = 30000,
+            disconnectTimeoutMS = int.MaxValue,
             maxFrameTimeMS = 0,
         });
 
-        mDone = new NativeArray<byte>(1, Allocator.Persistent);
         mConnection = new NativeArray<NetworkConnection>(1, Allocator.Persistent);
         mEvents = new NativeList<AnyEvent>(10, Allocator.Persistent);
 
@@ -39,24 +36,30 @@ sealed partial class Client: MonoBehaviour {
         }
 
         mConnection[0] = mDriver.Connect(endpoint);
-        Debug.Log($"client: connecting to {endpoint.Address}");
-
-        mLog.OnEvent(DidAddEvent);
+        Log.I($"Client - connecting to {endpoint.Address}");
     }
 
     private void Update() {
         mJob.Complete();
 
-        // copy state from native containers
+        // copy connection state from native container
         mState = mConnection[0].GetState(mDriver);
 
-        // copy events to native containers
-        while (mPendingEvents.Count != 0) {
-            mEvents.Add(mPendingEvents.Dequeue());
+        // copy received events from native container
+        var decode = new DecodeEvent();
+        for (var i = 0; i < mEvents.Length; i++) {
+            mLog.Add(decode.Call(mEvents[i]));
+            mEvents.RemoveAtSwapBack(i);
+            --i;
+        }
+
+        // copy pending events to native container to send to host
+        while (mLog.HasPending) {
+            mEvents.Add(mLog.PopPending().Into());
         }
 
         // schedule next update
-        var update = new UpdateJob(mDriver, mConnection, mDone, mEvents);
+        var update = new UpdateJob(mDriver, mConnection, mEvents);
         mJob = mDriver.ScheduleUpdate();
         mJob = update.Schedule(mJob);
     }
@@ -64,7 +67,6 @@ sealed partial class Client: MonoBehaviour {
     private void OnDestroy() {
         mJob.Complete();
         mDriver.Dispose();
-        mDone.Dispose();
         mConnection.Dispose();
     }
 
@@ -75,11 +77,6 @@ sealed partial class Client: MonoBehaviour {
 
     public bool IsDisconnected() {
         return mState == NetworkConnection.State.Disconnected;
-    }
-
-    // -- events --
-    private void DidAddEvent(Event evt) {
-        mPendingEvents.Enqueue(evt.Into());
     }
 
     // -- deps --

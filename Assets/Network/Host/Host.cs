@@ -1,3 +1,4 @@
+using System;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Networking.Transport;
@@ -15,20 +16,22 @@ sealed partial class Host: MonoBehaviour {
 
     // -- lifecycle --
     private void Start() {
-        mDriver = NetworkDriver.Create();
+        mDriver = NetworkDriver.Create(new NetworkConfigParameter() {
+            disconnectTimeoutMS = int.MaxValue,
+        });
 
         var endpoint = NetworkEndPoint.AnyIpv4;
         endpoint.Port = Config.kPort;
 
         var res = mDriver.Bind(endpoint);
         if (res != 0) {
-            Debug.Log($"Failed to bind to {Config.kPort}; {res}");
+            Log.E($"Host - failed to listen on port {Config.kPort} (err: {res})");
         } else {
             mDriver.Listen();
+            Log.I($"Host - listen on {Config.kPort}");
         }
 
         mConnections = new NativeList<NetworkConnection>(kMaxConnections, Allocator.Persistent);
-        Debug.Log($"host: listen on {Config.kPort}");
     }
 
     private void Update() {

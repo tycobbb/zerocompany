@@ -29,7 +29,7 @@ sealed partial class Host {
             NetworkConnection c;
             while ((c = mDriver.Accept()) != default) {
                 mConnections.Add(c);
-                Debug.Log("Accepted a connection");
+                Log.D("Host - accepted connection");
             }
         }
     }
